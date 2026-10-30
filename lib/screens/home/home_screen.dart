@@ -26,31 +26,40 @@ class HomeScreen extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-            child: Row(
+            child: Column(
               children: [
-                const Text(
-                  'Forum Komunitas Hobi',
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextField(
-                    onSubmitted: posts.setSearch,
-                    decoration: InputDecoration(
-                      hintText: 'Cari apa hari ini',
-                      prefixIcon: const Icon(Icons.search),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: EdgeInsets.zero,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Forum Komunitas Hobi',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
+                    ),
+                    const SizedBox(width: 12),
+                    UserAvatar(name: name),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  onSubmitted: posts.setSearch,
+                  decoration: InputDecoration(
+                    hintText: 'Cari apa hari ini',
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: EdgeInsets.zero,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                UserAvatar(name: name),
               ],
             ),
           ),
