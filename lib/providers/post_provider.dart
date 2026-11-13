@@ -62,6 +62,12 @@ class PostProvider extends ChangeNotifier {
     }
   }
 
+  // dipanggil layar detail setelah komentar ditambah (+1) atau dihapus (-1)
+  void bumpCommentCount(Post p, int delta) {
+    p.commentCount += delta;
+    notifyListeners();
+  }
+
   Future<void> createPost({
     required String communityId,
     required String content,

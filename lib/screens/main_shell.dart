@@ -6,6 +6,7 @@ import '../core/theme.dart';
 import '../providers/community_provider.dart';
 import '../providers/post_provider.dart';
 import 'home/home_screen.dart';
+import 'community/community_screen.dart';
 import 'post/create_post_screen.dart';
 
 class MainShell extends StatefulWidget {
@@ -21,7 +22,7 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CommunityProvider>().fetchJoined();
+      context.read<CommunityProvider>().fetch();
       context.read<PostProvider>().fetch();
     });
   }
@@ -42,7 +43,7 @@ class _MainShellState extends State<MainShell> {
         index: _tab,
         children: [
           const HomeScreen(),
-          const _Todo('Komunitas'),
+          const CommunityScreen(),
           const _Todo('Kalender Event'),
           const _Todo('Notifikasi'),
           Center(

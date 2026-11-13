@@ -24,4 +24,3 @@ class AppNotification {
     isRead: m['is_read'] as bool,
   );
 }
-git add .
