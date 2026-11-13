@@ -3,7 +3,7 @@ class Post {
   final String? imageUrl;
   final DateTime createdAt;
   int likeCount;
-  final int commentCount;
+  int commentCount;
   bool likedByMe;
 
   Post({

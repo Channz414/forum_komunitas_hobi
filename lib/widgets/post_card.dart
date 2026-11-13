@@ -5,16 +5,19 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../core/theme.dart';
 import '../models/post.dart';
 import '../providers/post_provider.dart';
+import '../screens/post/post_detail_screen.dart';
 import 'user_avatar.dart';
 
 class PostCard extends StatelessWidget {
   final Post post;
-  const PostCard({super.key, required this.post});
+  final bool tappable; // false kalau dipakai di dalam layar detail
+  const PostCard({super.key, required this.post, this.tappable = true});
 
   @override
   Widget build(BuildContext context) {
     const bold = TextStyle(fontWeight: FontWeight.w700);
-    return Container(
+
+    final card = Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -35,21 +38,23 @@ class PostCard extends StatelessWidget {
             children: [
               UserAvatar(name: post.username, radius: 26),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    post.username,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      post.username,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  Text(
-                    '${post.communityName} · ${timeago.format(post.createdAt, locale: 'id')}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
+                    Text(
+                      '${post.communityName} · ${timeago.format(post.createdAt, locale: 'id')}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -99,6 +104,16 @@ class PostCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    if (!tappable) return card;
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)),
+      ),
+      child: card,
     );
   }
 }
