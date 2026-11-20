@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../core/config.dart';
 import '../core/theme.dart';
 import '../providers/community_provider.dart';
+import '../providers/event_provider.dart';
+import '../providers/notification_provider.dart';
 import '../providers/post_provider.dart';
-import 'home/home_screen.dart';
+import '../providers/profile_provider.dart';
 import 'community/community_screen.dart';
+import 'event/event_screen.dart';
+import 'home/home_screen.dart';
+import 'notification/notification_screen.dart';
 import 'post/create_post_screen.dart';
+import 'profile/profile_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -24,7 +29,18 @@ class _MainShellState extends State<MainShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CommunityProvider>().fetch();
       context.read<PostProvider>().fetch();
+      context.read<EventProvider>().fetch();
+      context.read<NotificationProvider>().fetch();
+      context.read<ProfileProvider>().fetch();
     });
+  }
+
+  void _go(int i) {
+    setState(() => _tab = i);
+    // data tab yang dibuka di-refresh biar selalu terbaru
+    if (i == 2) context.read<EventProvider>().fetch();
+    if (i == 3) context.read<NotificationProvider>().fetch();
+    if (i == 4) context.read<ProfileProvider>().fetch();
   }
 
   Widget _item(IconData icon, int index) => IconButton(
@@ -33,25 +49,46 @@ class _MainShellState extends State<MainShell> {
       size: 30,
       color: _tab == index ? AppColors.accent : AppColors.ink,
     ),
-    onPressed: () => setState(() => _tab = index),
+    onPressed: () => _go(index),
   );
+
+  Widget _bell() {
+    final unread = context.watch<NotificationProvider>().unreadCount;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _item(Icons.notifications_none, 3),
+        if (unread > 0)
+          Positioned(
+            right: 4,
+            top: 4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                unread > 99 ? '99+' : '$unread',
+                style: const TextStyle(color: Colors.white, fontSize: 10),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _tab,
-        children: [
-          const HomeScreen(),
-          const CommunityScreen(),
-          const _Todo('Kalender Event'),
-          const _Todo('Notifikasi'),
-          Center(
-            child: TextButton(
-              onPressed: () => supabase.auth.signOut(),
-              child: const Text('profil'),
-            ),
-          ),
+        children: const [
+          HomeScreen(),
+          CommunityScreen(),
+          EventScreen(),
+          NotificationScreen(),
+          ProfileScreen(),
         ],
       ),
       bottomNavigationBar: Container(
@@ -77,7 +114,7 @@ class _MainShellState extends State<MainShell> {
                 ),
               ),
               _item(Icons.calendar_today_outlined, 2),
-              _item(Icons.notifications_none, 3),
+              _bell(),
               _item(Icons.account_circle_outlined, 4),
             ],
           ),
@@ -85,11 +122,4 @@ class _MainShellState extends State<MainShell> {
       ),
     );
   }
-}
-
-class _Todo extends StatelessWidget {
-  final String title;
-  const _Todo(this.title);
-  @override
-  Widget build(BuildContext context) => Center(child: Text('$title'));
 }

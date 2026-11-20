@@ -9,6 +9,9 @@ import 'providers/community_provider.dart';
 import 'providers/post_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_shell.dart';
+import 'providers/event_provider.dart';
+import 'providers/notification_provider.dart';
+import 'providers/profile_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +29,9 @@ class App extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => CommunityProvider()),
         ChangeNotifierProvider(create: (_) => PostProvider()),
+        ChangeNotifierProvider(create: (_) => EventProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
       ],
       child: MaterialApp(
         title: 'Forum Komunitas Hobi',
