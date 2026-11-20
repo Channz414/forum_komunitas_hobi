@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../core/config.dart';
-import '../models/post.dart';
+import '../../core/config.dart';
+import '../../models/post.dart';
 
 class ProfileProvider extends ChangeNotifier {
   String username = '';

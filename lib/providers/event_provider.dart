@@ -40,7 +40,7 @@ class EventProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final data = await supabase
-          .from('events_info')
+          .from('events_feed')
           .select()
           .order('starts_at', ascending: true);
       events = data.map<Event>((m) => Event.fromMap(m)).toList();
@@ -61,12 +61,12 @@ class EventProvider extends ChangeNotifier {
     notifyListeners();
     try {
       if (was) {
-        await supabase.from('event_attendees').delete().match({
+        await supabase.from('event_participants').delete().match({
           'event_id': e.id,
           'user_id': uid,
         });
       } else {
-        await supabase.from('event_attendees').insert({
+        await supabase.from('event_participants').insert({
           'event_id': e.id,
           'user_id': uid,
         });
@@ -101,7 +101,7 @@ class EventProvider extends ChangeNotifier {
         .select('id')
         .single();
     // pembuat otomatis ikut, sama seperti pembuat komunitas otomatis jadi anggota
-    await supabase.from('event_attendees').insert({
+    await supabase.from('event_participants').insert({
       'event_id': row['id'],
       'user_id': uid,
     });
