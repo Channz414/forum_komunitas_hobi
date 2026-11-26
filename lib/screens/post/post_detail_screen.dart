@@ -9,6 +9,7 @@ import '../../providers/comment_provider.dart';
 import '../../providers/post_provider.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/post_card.dart';
+import '../../widgets/profile_link.dart'; // BARU
 import '../../widgets/user_avatar.dart';
 
 class PostDetailScreen extends StatelessWidget {
@@ -181,15 +182,25 @@ class _CommentTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          UserAvatar(name: comment.username, radius: 18),
+          // BARU: avatar bisa di-tap → profil
+          ProfileLink(
+            userId: comment.userId,
+            username: comment.username,
+            child: UserAvatar(name: comment.username, radius: 18),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  comment.username,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                // BARU: nama bisa di-tap → profil
+                ProfileLink(
+                  userId: comment.userId,
+                  username: comment.username,
+                  child: Text(
+                    comment.username,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
                 Text(
                   timeago.format(comment.createdAt, locale: 'id'),

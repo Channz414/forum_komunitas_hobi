@@ -119,7 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Center(child: Text('Belum ada postingan')),
               )
             else
-              for (final p in pp.posts) PostCard(post: p),
+              for (final p in pp.posts) PostCard(post: p, onChanged: pp.fetch),
           ],
         ),
       ),
