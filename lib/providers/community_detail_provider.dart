@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/config.dart';
 import '../models/community.dart';
+import '../models/community_member.dart';
 import '../models/post.dart';
 
 class CommunityDetailProvider extends ChangeNotifier {
@@ -68,6 +69,38 @@ class CommunityDetailProvider extends ChangeNotifier {
       });
     }
     await fetch();
+  }
+
+  // pemilik di urutan pertama, sisanya urut abjad
+  Future<List<CommunityMember>> fetchMembers() async {
+    final data = await supabase
+        .from('community_members')
+        .select('user_id, profiles(username, avatar_url)')
+        .eq('community_id', communityId);
+    final ownerId = info?.ownerId;
+    final list = data
+        .map<CommunityMember>(
+          (m) => CommunityMember(
+            userId: m['user_id'],
+            username: m['profiles']['username'],
+            avatarUrl: m['profiles']['avatar_url'],
+            isOwner: m['user_id'] == ownerId,
+          ),
+        )
+        .toList();
+    list.sort((a, b) {
+      if (a.isOwner != b.isOwner) return a.isOwner ? -1 : 1;
+      return a.username.toLowerCase().compareTo(b.username.toLowerCase());
+    });
+    return list;
+  }
+
+  Future<void> report(String reason) async {
+    await supabase.from('community_reports').insert({
+      'reporter_id': supabase.auth.currentUser!.id,
+      'community_id': communityId,
+      'reason': reason,
+    });
   }
 
   Future<void> update({
