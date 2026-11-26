@@ -43,43 +43,10 @@ class _MainShellState extends State<MainShell> {
     if (i == 4) context.read<ProfileProvider>().fetch();
   }
 
-  Widget _item(IconData icon, int index) => IconButton(
-    icon: Icon(
-      icon,
-      size: 30,
-      color: _tab == index ? AppColors.accent : AppColors.ink,
-    ),
-    onPressed: () => _go(index),
-  );
-
-  Widget _bell() {
-    final unread = context.watch<NotificationProvider>().unreadCount;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        _item(Icons.notifications_none, 3),
-        if (unread > 0)
-          Positioned(
-            right: 4,
-            top: 4,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                unread > 99 ? '99+' : '$unread',
-                style: const TextStyle(color: Colors.white, fontSize: 10),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final unread = context.watch<NotificationProvider>().unreadCount;
+
     return Scaffold(
       body: IndexedStack(
         index: _tab,
@@ -91,33 +58,145 @@ class _MainShellState extends State<MainShell> {
           ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.bg,
-          boxShadow: [BoxShadow(color: AppColors.shadow, blurRadius: 8)],
-        ),
+      bottomNavigationBar: Material(
+        color: AppColors.bg,
+        elevation: 8,
+        shadowColor: AppColors.shadow,
         child: SafeArea(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _item(Icons.home_outlined, 0),
-              _item(Icons.groups_outlined, 1),
-              IconButton(
-                icon: const Icon(
-                  Icons.add_circle_outline,
-                  size: 34,
-                  color: AppColors.ink,
+          child: SizedBox(
+            height: 68,
+            child: Row(
+              children: [
+                _NavItem(
+                  icon: Icons.home_outlined,
+                  activeIcon: Icons.home,
+                  label: 'Beranda',
+                  selected: _tab == 0,
+                  onTap: () => _go(0),
                 ),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CreatePostScreen()),
+                _NavItem(
+                  icon: Icons.groups_outlined,
+                  activeIcon: Icons.groups,
+                  label: 'Komunitas',
+                  selected: _tab == 1,
+                  onTap: () => _go(1),
                 ),
-              ),
-              _item(Icons.calendar_today_outlined, 2),
-              _bell(),
-              _item(Icons.account_circle_outlined, 4),
-            ],
+                // bukan tab: membuka layar buat postingan
+                _NavItem(
+                  icon: Icons.add_circle_outline,
+                  activeIcon: Icons.add_circle,
+                  label: 'Buat',
+                  selected: false,
+                  iconSize: 32,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CreatePostScreen()),
+                  ),
+                ),
+                _NavItem(
+                  icon: Icons.calendar_today_outlined,
+                  activeIcon: Icons.calendar_month,
+                  label: 'Event',
+                  selected: _tab == 2,
+                  onTap: () => _go(2),
+                ),
+                _NavItem(
+                  icon: Icons.notifications_none,
+                  activeIcon: Icons.notifications,
+                  label: 'Notifikasi',
+                  selected: _tab == 3,
+                  badge: unread,
+                  onTap: () => _go(3),
+                ),
+                _NavItem(
+                  icon: Icons.account_circle_outlined,
+                  activeIcon: Icons.account_circle,
+                  label: 'Profil',
+                  selected: _tab == 4,
+                  onTap: () => _go(4),
+                ),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final IconData icon, activeIcon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final int badge;
+  final double iconSize;
+
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.badge = 0,
+    this.iconSize = 26,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppColors.accent : AppColors.ink;
+
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  selected ? activeIcon : icon,
+                  size: iconSize,
+                  color: color,
+                ),
+                if (badge > 0)
+                  Positioned(
+                    right: -8,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        badge > 99 ? '99+' : '$badge',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: color,
+              ),
+            ),
+          ],
         ),
       ),
     );
