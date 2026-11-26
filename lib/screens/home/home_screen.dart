@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/config.dart';
 import '../../core/theme.dart';
 import '../../providers/community_provider.dart';
 import '../../providers/post_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../../widgets/app_chip.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/user_avatar.dart';
@@ -17,9 +17,8 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final posts = context.watch<PostProvider>();
     final communities = context.watch<CommunityProvider>().joined;
-    final name =
-        (supabase.auth.currentUser?.userMetadata?['username'] as String?) ??
-        'U';
+    final profile = context.watch<ProfileProvider>();
+    final name = profile.username.isEmpty ? 'U' : profile.username;
 
     return SafeArea(
       child: Column(
@@ -42,7 +41,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    UserAvatar(name: name),
+                    UserAvatar(name: name, imageUrl: profile.avatarUrl),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -87,9 +86,10 @@ class HomeScreen extends StatelessWidget {
             child: RefreshIndicator(
               onRefresh: posts.fetch,
               child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 children: [
-                  _Composer(name: name),
+                  _Composer(name: name, avatarUrl: profile.avatarUrl),
                   const SizedBox(height: 16),
                   if (posts.loading && posts.posts.isEmpty)
                     const Padding(
@@ -107,7 +107,8 @@ class HomeScreen extends StatelessWidget {
                       child: Center(child: Text('Belum ada postingan')),
                     )
                   else
-                    for (final p in posts.posts) PostCard(post: p),
+                    for (final p in posts.posts)
+                      PostCard(post: p, onChanged: posts.fetch),
                 ],
               ),
             ),
@@ -120,7 +121,8 @@ class HomeScreen extends StatelessWidget {
 
 class _Composer extends StatelessWidget {
   final String name;
-  const _Composer({required this.name});
+  final String? avatarUrl;
+  const _Composer({required this.name, this.avatarUrl});
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +146,7 @@ class _Composer extends StatelessWidget {
         ),
         child: Row(
           children: [
-            UserAvatar(name: name, radius: 18),
+            UserAvatar(name: name, imageUrl: avatarUrl, radius: 18),
             const SizedBox(width: 12),
             const Expanded(child: Text('Apa kabar hari ini?')),
             const Icon(Icons.add_circle_outline),

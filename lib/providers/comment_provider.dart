@@ -18,7 +18,7 @@ class CommentProvider extends ChangeNotifier {
     try {
       final data = await supabase
           .from('comments')
-          .select('*, profiles(username)')
+          .select('*, profiles(username, avatar_url)')
           .eq('post_id', postId)
           .order('created_at', ascending: true);
       comments = data.map<Comment>((m) => Comment.fromMap(m)).toList();
