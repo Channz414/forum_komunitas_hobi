@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/config.dart';
 import '../../core/theme.dart';
 import '../../models/community.dart';
 import '../../providers/community_provider.dart';
 import '../../providers/post_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../../widgets/community_card.dart';
+import '../../widgets/confirm_dialog.dart';
 import '../../widgets/user_avatar.dart';
 import 'community_detail_screen.dart';
 
@@ -23,6 +24,18 @@ class _CommunityScreenState extends State<CommunityScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   Future<void> _toggle(Community c) async {
+    // keluar butuh konfirmasi, gabung langsung
+    if (c.joined) {
+      final ok = await confirmDialog(
+        context,
+        title: 'Keluar dari ${c.name}?',
+        message:
+            'Postingan komunitas ini tidak akan muncul lagi di beranda '
+            'Anda. Anda bisa bergabung lagi kapan saja.',
+        confirmLabel: 'Keluar',
+      );
+      if (!ok || !mounted) return;
+    }
     await context.read<CommunityProvider>().toggleJoin(c);
     if (!mounted) return;
     // feed Home bergantung pada komunitas yang diikuti, jadi refresh
@@ -87,18 +100,24 @@ class _CommunityScreenState extends State<CommunityScreen> {
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<CommunityProvider>();
+    final profile = context.watch<ProfileProvider>();
     final q = _query.toLowerCase();
     bool match(Community c) => c.name.toLowerCase().contains(q);
-    final joined = prov.all.where((c) => c.joined && match(c)).toList();
+
+    final mine = prov.all.where((c) => c.joined && match(c)).toList();
+    // komunitas milik sendiri di paling atas, sisanya tetap urut jumlah anggota
+    final joined = [
+      ...mine.where((c) => c.isOwner),
+      ...mine.where((c) => !c.isOwner),
+    ];
     final others = prov.all.where((c) => !c.joined && match(c)).toList();
-    final name =
-        (supabase.auth.currentUser?.userMetadata?['username'] as String?) ??
-        'U';
+    final name = profile.username.isEmpty ? 'U' : profile.username;
 
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: prov.fetch,
         child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.only(bottom: 24),
           children: [
             Padding(
@@ -114,7 +133,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                       ),
                     ),
                   ),
-                  UserAvatar(name: name),
+                  UserAvatar(name: name, imageUrl: profile.avatarUrl),
                 ],
               ),
             ),

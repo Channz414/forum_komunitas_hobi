@@ -8,8 +8,9 @@ import '../../models/post.dart';
 import '../../providers/comment_provider.dart';
 import '../../providers/post_provider.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/confirm_dialog.dart';
 import '../../widgets/post_card.dart';
-import '../../widgets/profile_link.dart'; // BARU
+import '../../widgets/profile_link.dart';
 import '../../widgets/user_avatar.dart';
 
 class PostDetailScreen extends StatelessWidget {
@@ -61,6 +62,13 @@ class _PostDetailViewState extends State<_PostDetailView> {
   }
 
   Future<void> _delete(Comment c) async {
+    final ok = await confirmDialog(
+      context,
+      title: 'Hapus komentar?',
+      message: 'Komentar ini akan dihapus permanen.',
+      confirmLabel: 'Hapus',
+    );
+    if (!ok || !mounted) return;
     try {
       await context.read<CommentProvider>().remove(c);
       if (!mounted) return;
@@ -187,7 +195,7 @@ class _CommentTile extends StatelessWidget {
             username: comment.username,
             child: UserAvatar(
               name: comment.username,
-              imageUrl: comment.avatarUrl, // BARU
+              imageUrl: comment.avatarUrl,
               radius: 18,
             ),
           ),

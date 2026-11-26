@@ -24,6 +24,25 @@ class PostCard extends StatelessWidget {
     this.onChanged,
   });
 
+  // layar gambar penuh, bisa di-zoom dan digeser
+  void _showImage(BuildContext context, String url) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+          ),
+          body: Center(
+            child: InteractiveViewer(maxScale: 5, child: Image.network(url)),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const bold = TextStyle(fontWeight: FontWeight.w700);
@@ -126,16 +145,29 @@ class PostCard extends StatelessWidget {
           Text(post.content),
           if (post.imageUrl != null) ...[
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                post.imageUrl!,
-                width: double.infinity,
-                height: 200,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox(
-                  height: 200,
-                  child: Center(child: Icon(Icons.broken_image)),
+            GestureDetector(
+              onTap: () => _showImage(context, post.imageUrl!),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                // tinggi mengikuti rasio asli gambar, maksimal 420
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 420),
+                  child: Image.network(
+                    post.imageUrl!,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, progress) =>
+                        progress == null
+                        ? child
+                        : const SizedBox(
+                            height: 200,
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                    errorBuilder: (_, __, ___) => const SizedBox(
+                      height: 200,
+                      child: Center(child: Icon(Icons.broken_image)),
+                    ),
+                  ),
                 ),
               ),
             ),

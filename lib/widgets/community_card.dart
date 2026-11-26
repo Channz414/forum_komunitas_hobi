@@ -8,7 +8,7 @@ String formatNumber(int n) =>
 
 class CommunityCard extends StatelessWidget {
   final Community community;
-  final String? actionLabel; // null = tanpa tombol (misal pemilik)
+  final String? actionLabel; // null = komunitas milik sendiri (badge Pemilik)
   final VoidCallback? onAction;
   final VoidCallback? onTap;
 
@@ -94,19 +94,17 @@ class CommunityCard extends StatelessWidget {
                 ),
               )
             else if (community.isOwner)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.chip,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.chipBorder),
+              // tombol yang sama dengan Keluar/Gabung, hanya beda warna
+              OutlinedButton(
+                onPressed: onTap,
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: AppColors.teal,
+                  foregroundColor: AppColors.tealText,
+                  side: const BorderSide(color: AppColors.tealText),
                 ),
                 child: const Text(
                   'Pemilik',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
           ],

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/config.dart';
 import '../../providers/event_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../../widgets/app_chip.dart';
 import '../../widgets/event_card.dart';
 import '../../widgets/user_avatar.dart';
@@ -21,10 +21,9 @@ class EventScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ep = context.watch<EventProvider>();
+    final profile = context.watch<ProfileProvider>();
     final events = ep.visible;
-    final name =
-        (supabase.auth.currentUser?.userMetadata?['username'] as String?) ??
-        'U';
+    final name = profile.username.isEmpty ? 'U' : profile.username;
 
     return SafeArea(
       child: Column(
@@ -49,7 +48,7 @@ class EventScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                UserAvatar(name: name),
+                UserAvatar(name: name, imageUrl: profile.avatarUrl),
               ],
             ),
           ),

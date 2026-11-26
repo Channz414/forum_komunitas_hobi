@@ -5,6 +5,7 @@ import '../../providers/community_detail_provider.dart';
 import '../../providers/community_provider.dart';
 import '../../providers/post_provider.dart';
 import '../../widgets/community_card.dart' show formatNumber;
+import '../../widgets/confirm_dialog.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/profile_link.dart';
 import 'edit_community_screen.dart';
@@ -36,6 +37,21 @@ class _CommunityDetailView extends StatelessWidget {
     final cp = context.read<CommunityProvider>();
     final pp = context.read<PostProvider>();
     final messenger = ScaffoldMessenger.of(context);
+    final c = p.info;
+    if (c == null) return;
+
+    // keluar butuh konfirmasi, gabung langsung
+    if (c.joined) {
+      final ok = await confirmDialog(
+        context,
+        title: 'Keluar dari ${c.name}?',
+        message:
+            'Postingan komunitas ini tidak akan muncul lagi di beranda '
+            'Anda. Anda bisa bergabung lagi kapan saja.',
+        confirmLabel: 'Keluar',
+      );
+      if (!ok) return;
+    }
     try {
       await p.toggleJoin();
       cp.fetch();
@@ -64,27 +80,14 @@ class _CommunityDetailView extends StatelessWidget {
     final pp = context.read<PostProvider>();
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus komunitas?'),
-        content: const Text(
+    final ok = await confirmDialog(
+      context,
+      title: 'Hapus komunitas?',
+      message:
           'Semua postingan dan event di komunitas ini ikut terhapus permanen.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Hapus',
     );
-    if (ok != true) return;
+    if (!ok) return;
     try {
       await p.delete();
       cp.fetch();
