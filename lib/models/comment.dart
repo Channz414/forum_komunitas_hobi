@@ -1,5 +1,6 @@
 class Comment {
   final String id, userId, username, content;
+  final String? avatarUrl;
   final DateTime createdAt;
 
   Comment({
@@ -7,6 +8,7 @@ class Comment {
     required this.userId,
     required this.username,
     required this.content,
+    this.avatarUrl,
     required this.createdAt,
   });
 
@@ -14,6 +16,7 @@ class Comment {
     id: m['id'],
     userId: m['user_id'],
     username: m['profiles']['username'],
+    avatarUrl: m['profiles']['avatar_url'],
     content: m['content'],
     createdAt: DateTime.parse(m['created_at']).toLocal(),
   );

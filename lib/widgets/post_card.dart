@@ -5,6 +5,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../core/theme.dart';
 import '../models/post.dart';
 import '../providers/post_provider.dart';
+import '../screens/community/community_detail_screen.dart';
 import '../screens/post/post_detail_screen.dart';
 import 'post_menu.dart';
 import 'profile_link.dart';
@@ -12,12 +13,14 @@ import 'user_avatar.dart';
 
 class PostCard extends StatelessWidget {
   final Post post;
-  final bool tappable; // false kalau dipakai di layar detail
+  final bool tappable; // false kalau dipakai di layar detail post
+  final bool linkCommunity; // false kalau sudah di layar komunitasnya
   final VoidCallback? onChanged; // dipanggil setelah edit/hapus
   const PostCard({
     super.key,
     required this.post,
     this.tappable = true,
+    this.linkCommunity = true,
     this.onChanged,
   });
 
@@ -46,22 +49,26 @@ class PostCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: ProfileLink(
-                  userId: post.userId,
-                  username: post.username,
-                  child: Row(
-                    children: [
-                      UserAvatar(
+                child: Row(
+                  children: [
+                    ProfileLink(
+                      userId: post.userId,
+                      username: post.username,
+                      child: UserAvatar(
                         name: post.username,
                         imageUrl: post.avatarUrl,
                         radius: 26,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ProfileLink(
+                            userId: post.userId,
+                            username: post.username,
+                            child: Text(
                               post.username,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -70,15 +77,42 @@ class PostCard extends StatelessWidget {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            Text(
-                              '${post.communityName} · ${timeago.format(post.createdAt, locale: 'id')}$edited',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
+                          ),
+                          Wrap(
+                            children: [
+                              GestureDetector(
+                                onTap: linkCommunity
+                                    ? () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => CommunityDetailScreen(
+                                            communityId: post.communityId,
+                                            name: post.communityName,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                                child: Text(
+                                  post.communityName,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: linkCommunity
+                                        ? TextDecoration.underline
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                ' · ${timeago.format(post.createdAt, locale: 'id')}$edited',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               PostMenu(

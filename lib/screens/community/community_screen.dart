@@ -8,6 +8,7 @@ import '../../providers/community_provider.dart';
 import '../../providers/post_provider.dart';
 import '../../widgets/community_card.dart';
 import '../../widgets/user_avatar.dart';
+import 'community_detail_screen.dart';
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
@@ -27,6 +28,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
     // feed Home bergantung pada komunitas yang diikuti, jadi refresh
     context.read<PostProvider>().fetch();
   }
+
+  void _open(Community c) => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => CommunityDetailScreen(communityId: c.id, name: c.name),
+    ),
+  );
 
   Future<void> _showCreate() async {
     final name = TextEditingController();
@@ -170,8 +178,9 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: CommunityCard(
                   community: c,
-                  actionLabel: 'Keluar',
+                  actionLabel: c.isOwner ? null : 'Keluar',
                   onAction: () => _toggle(c),
+                  onTap: () => _open(c),
                 ),
               ),
             if (others.isNotEmpty) _sectionTitle('Jelajahi Komunitas'),
@@ -182,6 +191,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   community: c,
                   actionLabel: 'Gabung',
                   onAction: () => _toggle(c),
+                  onTap: () => _open(c),
                 ),
               ),
           ],

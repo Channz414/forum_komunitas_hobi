@@ -182,18 +182,20 @@ class _CommentTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // BARU: avatar bisa di-tap → profil
           ProfileLink(
             userId: comment.userId,
             username: comment.username,
-            child: UserAvatar(name: comment.username, radius: 18),
+            child: UserAvatar(
+              name: comment.username,
+              imageUrl: comment.avatarUrl, // BARU
+              radius: 18,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // BARU: nama bisa di-tap → profil
                 ProfileLink(
                   userId: comment.userId,
                   username: comment.username,
