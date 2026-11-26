@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../providers/community_detail_provider.dart';
 import '../../providers/community_provider.dart';
@@ -7,8 +8,20 @@ import '../../providers/post_provider.dart';
 import '../../widgets/community_card.dart' show formatNumber;
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/post_card.dart';
+import '../../widgets/post_composer.dart';
 import '../../widgets/profile_link.dart';
 import 'edit_community_screen.dart';
+import 'members_screen.dart';
+
+const _reportReasons = [
+  'Spam',
+  'Ujaran kebencian atau pelecehan',
+  'Konten tidak pantas',
+  'Informasi palsu (hoax)',
+  'Lainnya',
+];
+
+enum _Action { members, edit, delete, report, leave }
 
 class CommunityDetailScreen extends StatelessWidget {
   final String communityId;
@@ -61,6 +74,19 @@ class _CommunityDetailView extends StatelessWidget {
     }
   }
 
+  void _members(BuildContext context) {
+    final p = context.read<CommunityDetailProvider>();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: p,
+          child: const MembersScreen(),
+        ),
+      ),
+    );
+  }
+
   void _edit(BuildContext context) {
     final p = context.read<CommunityDetailProvider>();
     Navigator.push(
@@ -98,6 +124,50 @@ class _CommunityDetailView extends StatelessWidget {
       );
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Gagal menghapus: $e')));
+    }
+  }
+
+  Future<void> _report(BuildContext context) async {
+    final p = context.read<CommunityDetailProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final reason = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Alasan melaporkan komunitas',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+            ),
+            for (final r in _reportReasons)
+              ListTile(title: Text(r), onTap: () => Navigator.pop(ctx, r)),
+          ],
+        ),
+      ),
+    );
+    if (reason == null) return;
+    try {
+      await p.report(reason);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Laporan terkirim, terima kasih')),
+      );
+    } on PostgrestException catch (e) {
+      // 23505 = unique violation (sudah pernah melapor)
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            e.code == '23505'
+                ? 'Anda sudah melaporkan komunitas ini'
+                : 'Gagal melapor: ${e.message}',
+          ),
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Gagal melapor: $e')));
     }
   }
 
@@ -170,22 +240,20 @@ class _CommunityDetailView extends StatelessWidget {
               ),
             ),
           ),
-        const SizedBox(height: 16),
-        if (c.isOwner)
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF4DA),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Text('Anda adalah pemilik komunitas ini'),
+        const SizedBox(height: 20),
+        // anggota: kotak buat postingan, bukan anggota: tombol Gabung
+        if (c.joined)
+          PostComposer(
+            communityId: c.id,
+            hint: 'Bagikan sesuatu ke ${c.name}...',
+            onPosted: p.fetch,
           )
         else
           SizedBox(
             width: double.infinity,
             child: FilledButton(
               onPressed: () => _toggle(context),
-              child: Text(c.joined ? 'Keluar' : 'Gabung'),
+              child: const Text('Gabung'),
             ),
           ),
         const SizedBox(height: 24),
@@ -216,13 +284,54 @@ class _CommunityDetailView extends StatelessWidget {
       appBar: AppBar(
         title: Text(c?.name ?? fallbackName ?? 'Komunitas'),
         actions: [
-          if (c?.isOwner == true)
-            PopupMenuButton<String>(
-              onSelected: (v) =>
-                  v == 'edit' ? _edit(context) : _delete(context),
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'edit', child: Text('Edit komunitas')),
-                PopupMenuItem(value: 'delete', child: Text('Hapus komunitas')),
+          if (c != null)
+            PopupMenuButton<_Action>(
+              tooltip: 'Opsi',
+              onSelected: (a) {
+                switch (a) {
+                  case _Action.members:
+                    _members(context);
+                  case _Action.edit:
+                    _edit(context);
+                  case _Action.delete:
+                    _delete(context);
+                  case _Action.report:
+                    _report(context);
+                  case _Action.leave:
+                    _toggle(context);
+                }
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: _Action.members,
+                  child: Text('Lihat anggota'),
+                ),
+                if (c.isOwner) ...[
+                  const PopupMenuItem(
+                    value: _Action.edit,
+                    child: Text('Edit komunitas'),
+                  ),
+                  const PopupMenuItem(
+                    value: _Action.delete,
+                    child: Text(
+                      'Hapus komunitas',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ] else ...[
+                  const PopupMenuItem(
+                    value: _Action.report,
+                    child: Text('Laporkan komunitas'),
+                  ),
+                  if (c.joined)
+                    const PopupMenuItem(
+                      value: _Action.leave,
+                      child: Text(
+                        'Keluar dari komunitas',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                ],
               ],
             ),
         ],

@@ -9,7 +9,8 @@ import '../../providers/community_provider.dart';
 import '../../providers/post_provider.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({super.key});
+  final String? initialCommunityId;
+  const CreatePostScreen({super.key, this.initialCommunityId});
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
 }
@@ -20,6 +21,18 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   XFile? _image;
   Uint8List? _bytes;
   bool _posting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _communityId = widget.initialCommunityId;
+  }
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
 
   void _snack(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
@@ -68,6 +81,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   @override
   Widget build(BuildContext context) {
     final communities = context.watch<CommunityProvider>().joined;
+    // nilai dropdown harus ada di daftar item, kalau tidak Flutter error
+    final selected = communities.any((c) => c.id == _communityId)
+        ? _communityId
+        : null;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Buat Postingan')),
       body: ListView(
@@ -87,7 +105,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       isExpanded: true,
-                      value: _communityId,
+                      value: selected,
                       hint: const Text('Pilih komunitas'),
                       items: [
                         for (final c in communities)
