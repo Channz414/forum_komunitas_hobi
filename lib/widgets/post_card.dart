@@ -6,16 +6,25 @@ import '../core/theme.dart';
 import '../models/post.dart';
 import '../providers/post_provider.dart';
 import '../screens/post/post_detail_screen.dart';
+import 'post_menu.dart';
+import 'profile_link.dart';
 import 'user_avatar.dart';
 
 class PostCard extends StatelessWidget {
   final Post post;
-  final bool tappable; // false kalau dipakai di dalam layar detail
-  const PostCard({super.key, required this.post, this.tappable = true});
+  final bool tappable; // false kalau dipakai di layar detail
+  final VoidCallback? onChanged; // dipanggil setelah edit/hapus
+  const PostCard({
+    super.key,
+    required this.post,
+    this.tappable = true,
+    this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     const bold = TextStyle(fontWeight: FontWeight.w700);
+    final edited = post.editedAt != null ? ' · diedit' : '';
 
     final card = Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -36,25 +45,46 @@ class PostCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              UserAvatar(name: post.username, radius: 26),
-              const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      post.username,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
+                child: ProfileLink(
+                  userId: post.userId,
+                  username: post.username,
+                  child: Row(
+                    children: [
+                      UserAvatar(
+                        name: post.username,
+                        imageUrl: post.avatarUrl,
+                        radius: 26,
                       ),
-                    ),
-                    Text(
-                      '${post.communityName} · ${timeago.format(post.createdAt, locale: 'id')}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              post.username,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              '${post.communityName} · ${timeago.format(post.createdAt, locale: 'id')}$edited',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+              ),
+              PostMenu(
+                post: post,
+                popOnDelete: !tappable,
+                onChanged: onChanged,
               ),
             ],
           ),

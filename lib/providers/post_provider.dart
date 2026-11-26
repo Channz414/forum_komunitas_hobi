@@ -39,7 +39,6 @@ class PostProvider extends ChangeNotifier {
     fetch();
   }
 
-  // optimistic update: UI langsung berubah, rollback kalau request gagal
   Future<void> toggleLike(Post p) async {
     final uid = supabase.auth.currentUser!.id;
     final wasLiked = p.likedByMe;
@@ -62,7 +61,6 @@ class PostProvider extends ChangeNotifier {
     }
   }
 
-  // dipanggil layar detail setelah komentar ditambah (+1) atau dihapus (-1)
   void bumpCommentCount(Post p, int delta) {
     p.commentCount += delta;
     notifyListeners();
@@ -94,5 +92,45 @@ class PostProvider extends ChangeNotifier {
       'image_url': url,
     });
     await fetch();
+  }
+
+  Future<void> updatePost(Post p, String content) async {
+    final now = DateTime.now();
+    final res = await supabase
+        .from('posts')
+        .update({
+          'content': content,
+          'edited_at': now.toUtc().toIso8601String(),
+        })
+        .eq('id', p.id)
+        .select('id');
+    if (res.isEmpty) throw 'Tidak punya izin untuk mengedit postingan ini';
+    p.content = content;
+    p.editedAt = now;
+
+    for (final x in posts.where((x) => x.id == p.id)) {
+      x.content = content;
+      x.editedAt = now;
+    }
+    notifyListeners();
+  }
+
+  Future<void> deletePost(Post p) async {
+    final res = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', p.id)
+        .select('id');
+    if (res.isEmpty) throw 'Tidak punya izin untuk menghapus postingan ini';
+    posts.removeWhere((x) => x.id == p.id);
+    notifyListeners();
+  }
+
+  Future<void> reportPost(Post p, String reason) async {
+    await supabase.from('reports').insert({
+      'reporter_id': supabase.auth.currentUser!.id,
+      'post_id': p.id,
+      'reason': reason,
+    });
   }
 }
