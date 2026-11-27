@@ -4,11 +4,13 @@ import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../providers/community_provider.dart';
 import '../providers/event_provider.dart';
+import '../providers/friend_provider.dart';
 import '../providers/notification_provider.dart';
 import '../providers/post_provider.dart';
 import '../providers/profile_provider.dart';
 import 'community/community_screen.dart';
 import 'event/event_screen.dart';
+import 'friend/friends_screen.dart';
 import 'home/home_screen.dart';
 import 'notification/notification_screen.dart';
 import 'post/create_post_screen.dart';
@@ -32,20 +34,23 @@ class _MainShellState extends State<MainShell> {
       context.read<EventProvider>().fetch();
       context.read<NotificationProvider>().fetch();
       context.read<ProfileProvider>().fetch();
+      context.read<FriendProvider>().fetch();
     });
   }
 
   void _go(int i) {
     setState(() => _tab = i);
     // data tab yang dibuka di-refresh biar selalu terbaru
-    if (i == 2) context.read<EventProvider>().fetch();
-    if (i == 3) context.read<NotificationProvider>().fetch();
-    if (i == 4) context.read<ProfileProvider>().fetch();
+    if (i == 2) context.read<FriendProvider>().fetch();
+    if (i == 3) context.read<EventProvider>().fetch();
+    if (i == 4) context.read<NotificationProvider>().fetch();
+    if (i == 5) context.read<ProfileProvider>().fetch();
   }
 
   @override
   Widget build(BuildContext context) {
     final unread = context.watch<NotificationProvider>().unreadCount;
+    final requests = context.watch<FriendProvider>().incoming.length;
 
     return Scaffold(
       body: IndexedStack(
@@ -53,6 +58,7 @@ class _MainShellState extends State<MainShell> {
         children: const [
           HomeScreen(),
           CommunityScreen(),
+          FriendsScreen(),
           EventScreen(),
           NotificationScreen(),
           ProfileScreen(),
@@ -81,7 +87,15 @@ class _MainShellState extends State<MainShell> {
                   selected: _tab == 1,
                   onTap: () => _go(1),
                 ),
-                // bukan tab: membuka layar buat postingan
+                _NavItem(
+                  icon: Icons.people_outline,
+                  activeIcon: Icons.people,
+                  label: 'Teman',
+                  selected: _tab == 2,
+                  badge: requests,
+                  onTap: () => _go(2),
+                ),
+                // bukan tab: membuka layar buat postingan (posisi tengah)
                 _NavItem(
                   icon: Icons.add_circle_outline,
                   activeIcon: Icons.add_circle,
@@ -97,23 +111,23 @@ class _MainShellState extends State<MainShell> {
                   icon: Icons.calendar_today_outlined,
                   activeIcon: Icons.calendar_month,
                   label: 'Event',
-                  selected: _tab == 2,
-                  onTap: () => _go(2),
+                  selected: _tab == 3,
+                  onTap: () => _go(3),
                 ),
                 _NavItem(
                   icon: Icons.notifications_none,
                   activeIcon: Icons.notifications,
                   label: 'Notifikasi',
-                  selected: _tab == 3,
+                  selected: _tab == 4,
                   badge: unread,
-                  onTap: () => _go(3),
+                  onTap: () => _go(4),
                 ),
                 _NavItem(
                   icon: Icons.account_circle_outlined,
                   activeIcon: Icons.account_circle,
                   label: 'Profil',
-                  selected: _tab == 4,
-                  onTap: () => _go(4),
+                  selected: _tab == 5,
+                  onTap: () => _go(5),
                 ),
               ],
             ),
@@ -139,7 +153,7 @@ class _NavItem extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.badge = 0,
-    this.iconSize = 26,
+    this.iconSize = 24,
   });
 
   @override
@@ -152,48 +166,62 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(
-                  selected ? activeIcon : icon,
-                  size: iconSize,
-                  color: color,
-                ),
-                if (badge > 0)
-                  Positioned(
-                    right: -8,
-                    top: -4,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        badge > 99 ? '99+' : '$badge',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
+            // tinggi area ikon dikunci, supaya label semua item sejajar
+            // walaupun ukuran ikon "Buat" lebih besar
+            SizedBox(
+              height: 32,
+              child: Center(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      selected ? activeIcon : icon,
+                      size: iconSize,
+                      color: color,
+                    ),
+                    if (badge > 0)
+                      Positioned(
+                        right: -8,
+                        top: -4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            badge > 99 ? '99+' : '$badge',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-              ],
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: color,
+            const SizedBox(height: 2),
+            // 7 item membuat tiap kolom sempit, label otomatis mengecil
+            // kalau tidak muat (tidak sampai terpotong)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    color: color,
+                  ),
+                ),
               ),
             ),
           ],

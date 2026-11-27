@@ -20,75 +20,82 @@ class HomeScreen extends StatelessWidget {
     final profile = context.watch<ProfileProvider>();
     final name = profile.username.isEmpty ? 'U' : profile.username;
 
+    final chips = ListView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        AppChip(
+          label: 'Semua',
+          selected: posts.communityFilter == null,
+          onTap: () => posts.setFilter(null),
+        ),
+        for (final c in communities)
+          AppChip(
+            label: c.name,
+            selected: posts.communityFilter == c.id,
+            onTap: () => posts.setFilter(c.id),
+          ),
+      ],
+    );
+
     return SafeArea(
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-            child: Column(
-              children: [
-                Row(
+      child: RefreshIndicator(
+        onRefresh: posts.fetch,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // 1. judul + search: ikut ter-scroll ke atas
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                child: Column(
                   children: [
-                    const Expanded(
-                      child: Text(
-                        'Forum Komunitas Hobi',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Kobbies',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        UserAvatar(name: name, imageUrl: profile.avatarUrl),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      onSubmitted: posts.setSearch,
+                      decoration: InputDecoration(
+                        hintText: 'Cari apa hari ini',
+                        prefixIcon: const Icon(Icons.search),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.zero,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    UserAvatar(name: name, imageUrl: profile.avatarUrl),
                   ],
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  onSubmitted: posts.setSearch,
-                  decoration: InputDecoration(
-                    hintText: 'Cari apa hari ini',
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: EdgeInsets.zero,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-          SizedBox(
-            height: 48,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                AppChip(
-                  label: 'Semua',
-                  selected: posts.communityFilter == null,
-                  onTap: () => posts.setFilter(null),
-                ),
-                for (final c in communities)
-                  AppChip(
-                    label: c.name,
-                    selected: posts.communityFilter == c.id,
-                    onTap: () => posts.setFilter(c.id),
-                  ),
-              ],
+            // 2. chip komunitas: menempel di atas saat di-scroll
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _PinnedHeader(chips),
             ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: posts.fetch,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                children: [
+            // 3. daftar postingan
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
                   _Composer(name: name, avatarUrl: profile.avatarUrl),
                   const SizedBox(height: 16),
                   if (posts.loading && posts.posts.isEmpty)
@@ -109,14 +116,35 @@ class HomeScreen extends StatelessWidget {
                   else
                     for (final p in posts.posts)
                       PostCard(post: p, onChanged: posts.fetch),
-                ],
+                ]),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
+
+// pembungkus supaya sebuah widget bisa "menempel" di atas layar (sliver pinned)
+class _PinnedHeader extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  _PinnedHeader(this.child);
+
+  @override
+  double get minExtent => 48;
+  @override
+  double get maxExtent => 48;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => ColoredBox(color: AppColors.bg, child: child);
+
+  @override
+  bool shouldRebuild(covariant _PinnedHeader oldDelegate) => true;
 }
 
 class _Composer extends StatelessWidget {

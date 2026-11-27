@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/config.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../providers/post_provider.dart';
 import '../../providers/user_profile_provider.dart';
+import '../../widgets/friend_button.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/user_avatar.dart';
+import '../friend/friend_list_screen.dart';
 
 class UserProfileScreen extends StatelessWidget {
   final String userId;
@@ -17,14 +20,15 @@ class UserProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => UserProfileProvider(userId)..fetch(),
-      child: _UserProfileView(fallbackName: username),
+      child: _UserProfileView(userId: userId, fallbackName: username),
     );
   }
 }
 
 class _UserProfileView extends StatelessWidget {
+  final String userId;
   final String? fallbackName;
-  const _UserProfileView({this.fallbackName});
+  const _UserProfileView({required this.userId, this.fallbackName});
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +37,12 @@ class _UserProfileView extends StatelessWidget {
     final title = up.username.isNotEmpty
         ? up.username
         : (fallbackName ?? 'Profil');
+    final isMe = userId == supabase.auth.currentUser?.id;
+
+    final countText = Text(
+      '${up.friendCount} Teman',
+      style: const TextStyle(fontWeight: FontWeight.w700),
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text(title)),
@@ -77,14 +87,54 @@ class _UserProfileView extends StatelessWidget {
                     child: Text(up.bio!, textAlign: TextAlign.center),
                   ),
                 ),
+              // jumlah teman: profil sendiri bisa diketuk buat lihat daftar,
+              // profil orang lain hanya angka
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Center(
+                  child: isMe
+                      ? InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const FriendListScreen(),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                countText,
+                                const SizedBox(width: 4),
+                                const Icon(Icons.chevron_right, size: 18),
+                              ],
+                            ),
+                          ),
+                        )
+                      : countText,
+                ),
+              ),
               if (up.joinedAt != null)
                 Padding(
-                  padding: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.only(top: 4),
                   child: Center(
                     child: Text(
                       'Bergabung ${bulanPendek(up.joinedAt!)} ${up.joinedAt!.year}',
                       style: const TextStyle(fontSize: 12),
                     ),
+                  ),
+                ),
+              // tombol pertemanan, tidak muncul di profil sendiri
+              if (!isMe)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Center(
+                    child: FriendButton(userId: userId, username: up.username),
                   ),
                 ),
               if (up.communities.isNotEmpty) ...[

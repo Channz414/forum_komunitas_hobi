@@ -6,12 +6,13 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'core/config.dart';
 import 'core/theme.dart';
 import 'providers/community_provider.dart';
+import 'providers/event_provider.dart';
+import 'providers/friend_provider.dart';
+import 'providers/notification_provider.dart';
 import 'providers/post_provider.dart';
+import 'providers/profile_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_shell.dart';
-import 'providers/event_provider.dart';
-import 'providers/notification_provider.dart';
-import 'providers/profile_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,9 +33,10 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => EventProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => FriendProvider()),
       ],
       child: MaterialApp(
-        title: 'Forum Komunitas Hobi',
+        title: 'Kobbies',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
         home: StreamBuilder<AuthState>(
