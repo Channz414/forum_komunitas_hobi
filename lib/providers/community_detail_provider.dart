@@ -5,7 +5,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config.dart';
 import '../models/community.dart';
 import '../models/community_member.dart';
+import '../models/event.dart';
 import '../models/post.dart';
+
+enum CommunityTab { posts, events }
 
 class CommunityDetailProvider extends ChangeNotifier {
   final String communityId;
@@ -13,9 +16,25 @@ class CommunityDetailProvider extends ChangeNotifier {
 
   Community? info;
   List<Post> posts = [];
+  List<Event> events = [];
+  CommunityTab tab = CommunityTab.posts;
   bool loading = false;
   bool gone = false; // komunitas sudah dihapus
   String? error;
+
+  // event mendatang (terdekat dulu), lalu event yang sudah lewat (terbaru dulu)
+  List<Event> get sortedEvents {
+    final upcoming = events.where((e) => !e.isPast).toList()
+      ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+    final past = events.where((e) => e.isPast).toList()
+      ..sort((a, b) => b.startsAt.compareTo(a.startsAt));
+    return [...upcoming, ...past];
+  }
+
+  void setTab(CommunityTab t) {
+    tab = t;
+    notifyListeners();
+  }
 
   Future<void> fetch() async {
     loading = true;
@@ -31,6 +50,7 @@ class CommunityDetailProvider extends ChangeNotifier {
         gone = true;
         info = null;
         posts = [];
+        events = [];
       } else {
         gone = false;
         info = Community.fromMap(row);
@@ -45,6 +65,12 @@ class CommunityDetailProvider extends ChangeNotifier {
         } else {
           posts = []; // postingan hanya terlihat oleh anggota
         }
+        // event komunitas terlihat oleh semua orang
+        final ev = await supabase
+            .from('events_feed')
+            .select()
+            .eq('community_id', communityId);
+        events = ev.map<Event>((m) => Event.fromMap(m)).toList();
       }
     } catch (e) {
       error = e.toString();

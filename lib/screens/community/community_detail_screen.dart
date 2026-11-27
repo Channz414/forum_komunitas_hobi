@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../models/event.dart';
 import '../../providers/community_detail_provider.dart';
 import '../../providers/community_provider.dart';
+import '../../providers/event_provider.dart';
 import '../../providers/post_provider.dart';
+import '../../widgets/app_chip.dart';
 import '../../widgets/community_card.dart' show formatNumber;
 import '../../widgets/confirm_dialog.dart';
+import '../../widgets/event_card.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/post_composer.dart';
 import '../../widgets/profile_link.dart';
@@ -72,6 +76,14 @@ class _CommunityDetailView extends StatelessWidget {
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Gagal: $e')));
     }
+  }
+
+  // tombol Ikut di kartu event. Event di layar ini salinan sendiri,
+  // jadi layar Event utama di-fetch ulang supaya ikut sinkron
+  Future<void> _toggleEvent(BuildContext context, Event e) async {
+    final ep = context.read<EventProvider>();
+    await ep.toggleAttend(e);
+    ep.fetch();
   }
 
   void _members(BuildContext context) {
@@ -175,6 +187,7 @@ class _CommunityDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.watch<CommunityDetailProvider>();
     context.watch<PostProvider>(); // supaya like di kartu ikut ter-update
+    context.watch<EventProvider>(); // supaya tombol Ikut ikut ter-update
     final c = p.info;
 
     final children = <Widget>[];
@@ -240,15 +253,9 @@ class _CommunityDetailView extends StatelessWidget {
               ),
             ),
           ),
-        const SizedBox(height: 20),
-        // anggota: kotak buat postingan, bukan anggota: tombol Gabung
-        if (c.joined)
-          PostComposer(
-            communityId: c.id,
-            hint: 'Bagikan sesuatu ke ${c.name}...',
-            onPosted: p.fetch,
-          )
-        else
+        const SizedBox(height: 16),
+        // bukan anggota: tombol Gabung (tab apa pun)
+        if (!c.joined) ...[
           SizedBox(
             width: double.infinity,
             child: FilledButton(
@@ -256,28 +263,77 @@ class _CommunityDetailView extends StatelessWidget {
               child: const Text('Gabung'),
             ),
           ),
-        const SizedBox(height: 24),
-        const Text(
-          'Postingan',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 12),
-        if (!c.joined)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: Center(
-              child: Text('Gabung komunitas ini untuk melihat postingannya'),
+          const SizedBox(height: 12),
+        ],
+        // chip tab: Postingan / Event
+        Row(
+          children: [
+            AppChip(
+              label: 'Postingan',
+              selected: p.tab == CommunityTab.posts,
+              onTap: () => p.setTab(CommunityTab.posts),
             ),
-          )
-        else if (p.posts.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: Center(child: Text('Belum ada postingan')),
-          )
-        else
-          for (final post in p.posts)
-            PostCard(post: post, onChanged: p.fetch, linkCommunity: false),
+            AppChip(
+              label: 'Event (${p.events.length})',
+              selected: p.tab == CommunityTab.events,
+              onTap: () => p.setTab(CommunityTab.events),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
       ]);
+
+      if (p.tab == CommunityTab.posts) {
+        if (c.joined) {
+          children.addAll([
+            PostComposer(
+              communityId: c.id,
+              hint: 'Bagikan sesuatu ke ${c.name}...',
+              onPosted: p.fetch,
+            ),
+            const SizedBox(height: 16),
+          ]);
+        }
+        if (!c.joined) {
+          children.add(
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(
+                child: Text('Gabung komunitas ini untuk melihat postingannya'),
+              ),
+            ),
+          );
+        } else if (p.posts.isEmpty) {
+          children.add(
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: Text('Belum ada postingan')),
+            ),
+          );
+        } else {
+          for (final post in p.posts) {
+            children.add(
+              PostCard(post: post, onChanged: p.fetch, linkCommunity: false),
+            );
+          }
+        }
+      } else {
+        final events = p.sortedEvents;
+        if (events.isEmpty) {
+          children.add(
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: Text('Belum ada event di komunitas ini')),
+            ),
+          );
+        } else {
+          for (final e in events) {
+            children.add(
+              EventCard(event: e, onToggle: () => _toggleEvent(context, e)),
+            );
+          }
+        }
+      }
     }
 
     return Scaffold(

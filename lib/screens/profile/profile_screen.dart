@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/config.dart';
+import '../../providers/friend_provider.dart';
 import '../../providers/post_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/user_avatar.dart';
+import '../friend/friend_list_screen.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -14,6 +16,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pp = context.watch<ProfileProvider>();
+    final friendCount = context.watch<FriendProvider>().friends.length;
     context.watch<PostProvider>(); // supaya like di kartu langsung ter-update
     final shownName = pp.username.isEmpty ? 'U' : pp.username;
 
@@ -49,6 +52,36 @@ class ProfileScreen extends StatelessWidget {
                   child: Text(pp.bio!, textAlign: TextAlign.center),
                 ),
               ),
+            // ketuk jumlah teman -> daftar teman (hanya terlihat oleh sendiri)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Center(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const FriendListScreen()),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$friendCount Teman',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

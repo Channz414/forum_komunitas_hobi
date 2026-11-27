@@ -10,6 +10,7 @@ class UserProfileProvider extends ChangeNotifier {
   String username = '';
   String? avatarUrl, bio;
   DateTime? joinedAt;
+  int friendCount = 0;
   List<String> communities = [];
   List<Post> posts = [];
   bool loading = false;
@@ -30,6 +31,13 @@ class UserProfileProvider extends ChangeNotifier {
       avatarUrl = profile['avatar_url'];
       bio = profile['bio'];
       joinedAt = DateTime.parse(profile['created_at']).toLocal();
+
+      // hanya angka: daftar teman orang lain tidak bisa dibaca (lihat RLS)
+      final count = await supabase.rpc(
+        'friend_count',
+        params: {'target': userId},
+      );
+      friendCount = (count as num).toInt();
 
       final mem = await supabase
           .from('community_members')

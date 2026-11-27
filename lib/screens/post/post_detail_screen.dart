@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -9,6 +12,8 @@ import '../../providers/comment_provider.dart';
 import '../../providers/post_provider.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/confirm_dialog.dart';
+import '../../widgets/emoji_panel.dart';
+import '../../widgets/image_viewer.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/profile_link.dart';
 import '../../widgets/user_avatar.dart';
@@ -34,27 +39,81 @@ class _PostDetailView extends StatefulWidget {
 }
 
 class _PostDetailViewState extends State<_PostDetailView> {
+  // tidak dikompres supaya GIF tetap beranimasi, jadi ukurannya dibatasi
+  static const _maxBytes = 8 * 1024 * 1024;
+
   final _text = TextEditingController();
+  final _focus = FocusNode();
+  XFile? _image;
+  Uint8List? _bytes;
   bool _sending = false;
+  bool _showEmoji = false;
 
   @override
   void dispose() {
     _text.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
   void _snack(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
+  Future<void> _pickImage() async {
+    final x = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (x == null) return;
+    if (await x.length() > _maxBytes) {
+      _snack('Ukuran file maksimal 8 MB');
+      return;
+    }
+    final b = await x.readAsBytes();
+    if (!mounted) return;
+    setState(() {
+      _image = x;
+      _bytes = b;
+    });
+  }
+
+  void _removeImage() => setState(() {
+    _image = null;
+    _bytes = null;
+  });
+
+  void _toggleEmoji() {
+    if (_showEmoji) {
+      setState(() => _showEmoji = false);
+      _focus.requestFocus(); // balik ke keyboard biasa
+    } else {
+      FocusScope.of(context).unfocus(); // sembunyikan keyboard
+      setState(() => _showEmoji = true);
+    }
+  }
+
+  // sisipkan emoji di posisi kursor
+  void _insertEmoji(String e) {
+    final sel = _text.selection;
+    final start = sel.isValid ? sel.start : _text.text.length;
+    final end = sel.isValid ? sel.end : _text.text.length;
+    _text.value = TextEditingValue(
+      text: _text.text.replaceRange(start, end, e),
+      selection: TextSelection.collapsed(offset: start + e.length),
+    );
+  }
+
   Future<void> _send() async {
     final content = _text.text.trim();
-    if (content.isEmpty || _sending) return;
+    if ((content.isEmpty && _image == null) || _sending) return;
     setState(() => _sending = true);
     try {
-      await context.read<CommentProvider>().add(content);
+      await context.read<CommentProvider>().add(content, image: _image);
       if (!mounted) return;
       context.read<PostProvider>().bumpCommentCount(widget.post, 1);
       _text.clear();
+      setState(() {
+        _image = null;
+        _bytes = null;
+        _showEmoji = false;
+      });
     } catch (e) {
       if (mounted) _snack('Gagal mengirim komentar: $e');
     }
@@ -132,36 +191,102 @@ class _PostDetailViewState extends State<_PostDetailView> {
           SafeArea(
             top: false,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 boxShadow: [BoxShadow(color: Color(0x26000000), blurRadius: 6)],
               ),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _text,
-                      minLines: 1,
-                      maxLines: 4,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _send(),
-                      decoration: const InputDecoration(
-                        hintText: 'Tulis komentar...',
-                        border: InputBorder.none,
+                  // pratinjau gambar/GIF yang akan dikirim
+                  if (_bytes != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.memory(
+                                _bytes!,
+                                width: 96,
+                                height: 96,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              right: 4,
+                              top: 4,
+                              child: GestureDetector(
+                                onTap: _removeImage,
+                                child: const CircleAvatar(
+                                  radius: 12,
+                                  backgroundColor: Colors.black87,
+                                  child: Icon(
+                                    Icons.close,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                  Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          tooltip: 'Emoji',
+                          onPressed: _toggleEmoji,
+                          icon: Icon(
+                            _showEmoji
+                                ? Icons.keyboard_outlined
+                                : Icons.emoji_emotions_outlined,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Foto atau GIF',
+                          onPressed: _sending ? null : _pickImage,
+                          icon: const Icon(Icons.image_outlined),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _text,
+                            focusNode: _focus,
+                            minLines: 1,
+                            maxLines: 4,
+                            onTap: () {
+                              if (_showEmoji) {
+                                setState(() => _showEmoji = false);
+                              }
+                            },
+                            decoration: const InputDecoration(
+                              hintText: 'Tulis komentar...',
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _sending ? null : _send,
+                          icon: _sending
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.send),
+                        ),
+                      ],
+                    ),
                   ),
-                  IconButton(
-                    onPressed: _sending ? null : _send,
-                    icon: _sending
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.send),
-                  ),
+                  if (_showEmoji) EmojiPanel(onPick: _insertEmoji),
                 ],
               ),
             ),
@@ -184,6 +309,7 @@ class _CommentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final img = comment.imageUrl;
     return AppCard(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -216,8 +342,43 @@ class _CommentTile extends StatelessWidget {
                   timeago.format(comment.createdAt, locale: 'id'),
                   style: const TextStyle(fontSize: 11),
                 ),
-                const SizedBox(height: 4),
-                Text(comment.content),
+                if (comment.content.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(comment.content),
+                ],
+                if (img != null && img.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => showImageViewer(context, img),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: 260,
+                          maxHeight: 260,
+                        ),
+                        child: Image.network(
+                          img,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, progress) =>
+                              progress == null
+                              ? child
+                              : const SizedBox(
+                                  height: 120,
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+                          errorBuilder: (_, __, ___) => const SizedBox(
+                            height: 120,
+                            child: Center(child: Icon(Icons.broken_image)),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
